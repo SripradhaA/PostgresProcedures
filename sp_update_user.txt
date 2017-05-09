@@ -1,0 +1,60 @@
+CREATE OR REPLACE FUNCTION public.sp_update_user(IN i_s_userid character varying,IN i_s_emailid character varying,IN i_s_firstname character,IN i_s_location character varying,IN i_s_lastname character,IN i_n_contactno character varying,IN i_s_role character varying,IN i_s_updtuserid character varying,OUT o_n_lsdberrorid double precision,OUT o_s_oraclecode character varying,OUT o_s_errormessage character varying)
+    RETURNS record
+    LANGUAGE 'plpgsql'
+    COST 100.0
+
+AS $function$
+
+   DECLARE
+   l_s_User_Role  character varying; 
+   l_s_Role_ID  character varying;
+   l_s_From_User_Email  character varying;
+   l_s_Modify_User_Body  character varying;
+   l_s_Modify_User_Subject  character varying;
+   l_s_First_Name  character varying;
+   l_s_Prev_Logged_Date timestamp DEFAULT  NULL;
+BEGIN
+
+   o_n_LSDBErrorID            := 0;
+   o_s_OracleCode             := 0;
+   o_s_ErrorMessage           := ''; 
+   l_s_Modify_User_Body       := 'Hello <FN><br/><br/>Your user account information'||
+'has been modified in the Locomotive Spec Database.<br/><br/>You have been assigned as <UR>.'||
+'<br/><br/>If you have any questions, please contact your Systems Administrator.'||
+'<br/><br/>Thank you,<br/>LSDB';      
+   l_s_Modify_User_Subject    := 'Notification - Modify User';
+   SELECT LS120_ROLE_ID INTO l_s_Role_ID FROM LSDB010_EMD_USERS WHERE LS010_USER_ID = i_s_UserId;
+   SELECT LS010_FIRSTNAME INTO l_s_First_Name FROM LSDB010_EMD_USERS WHERE LS010_USER_ID = i_s_UserId;
+   SELECT LS010_EMAIL_ADDRESS INTO l_s_From_User_Email FROM  LSDB010_EMD_USERS WHERE LS010_USER_ID = i_s_UpdtUserId;
+   SELECT LS120_ROLE_NAME INTO l_s_User_Role  FROM LSDB120_USER_ROLES
+   WHERE LS120_ROLE_ID = i_s_Role;
+   l_s_Modify_User_Body := REPLACE(l_s_Modify_User_Body,'<FN>',i_s_FirstName);
+   l_s_Modify_User_Body := REPLACE(l_s_Modify_User_Body,'<UR>',l_s_User_Role);
+   IF  i_s_FirstName   IS NOT NULL   THEN  
+      UPDATE LSDB010_EMD_USERS SET LS010_FIRSTNAME = 
+      coalesce(i_s_FirstName,LS010_FIRSTNAME),LS010_LASTNAME = coalesce(i_s_LastName,LS010_LASTNAME),
+      LS120_ROLE_ID = coalesce(i_s_Role,LS120_ROLE_ID), 
+      LS010_EMAIL_ADDRESS = coalesce(i_s_EmailId,LS010_EMAIL_ADDRESS),
+      LS010_LOC = coalesce(i_s_Location,LS010_LOC),LS010_CONTACT_NUMBER = coalesce(i_n_ContactNo,LS010_CONTACT_NUMBER), 
+      LS010_UPDT_USER_ID = i_s_UpdtUserId,
+      LS010_UPDT_DATE = LOCALTIMESTAMP  WHERE LS010_USER_ID = i_s_UserId; 
+ELSE 
+BEGIN
+SELECT LS010_CURR_LOGGEDIN INTO l_s_Prev_Logged_Date FROM LSDB010_EMD_USERS  WHERE  LS010_USER_ID = i_s_UserId;
+EXCEPTION WHEN NO_DATA_FOUND THEN 
+l_s_Prev_Logged_Date := NULL;
+END; 
+UPDATE LSDB010_EMD_USERS SET LS010_PREV_LOGGEDIN = l_s_Prev_Logged_Date WHERE  LS010_USER_ID = i_s_UserId; 
+ 
+END IF;
+   IF i_s_Role <> l_s_Role_ID AND  i_s_Role <> 'DSBD' AND  i_s_EmailId IS NOT NULL THEN 
+      INSERT INTO LSDB180_EMAIL_LOG(LS180_EMAIL_SEQ_NO,LS180_EMAIL_FROM_X,LS180_EMAIL_TO_X, 
+                                    LS180_EMAIL_SUBJECT_X,LS180_EMAIL_BODY_X,LS180_EMAIL_SENT_FLAG,LS180_EMAIL_TS,
+                                    LS180_UPDT_USER_ID, LS180_UPDT_DATE)VALUES(NEXTVAL('SEQ_EMAIL'),l_s_From_User_Email,
+                                     i_s_EmailId,l_s_Modify_User_Subject,l_s_Modify_User_Body ,'N',
+                                                                               LOCALTIMESTAMP  ,i_s_UpdtUserId,LOCALTIMESTAMP);
+   END IF;
+   RETURN;
+END; 
+
+$function$;

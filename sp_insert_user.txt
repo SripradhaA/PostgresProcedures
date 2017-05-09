@@ -1,0 +1,81 @@
+
+
+CREATE OR REPLACE FUNCTION public.sp_insert_user(i_s_userid character varying,i_s_emailid character varying,i_s_firstname character varying,i_s_location character varying,i_s_lastname character varying,i_n_contactno character varying,i_s_password character varying,i_s_role character varying,i_s_updtuserid character varying,i_s_serverid character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100.0
+
+AS $function$
+
+declare
+l_s_User_Exists_Flag character varying;    
+l_s_From_User_Email character varying;
+l_s_Add_User_Body character varying;
+l_s_Add_User_Subject character varying;
+l_s_User_Role character varying;
+SEQ_EMAIL integer;
+SEQ_MAX integer;
+
+BEGIN
+l_s_User_Exists_Flag :='N';
+
+IF i_s_serverid = '-QA' THEN
+
+ l_s_Add_User_Body := 'Hello <FN>,<br/><br/>You have been added as <UR> in '||
+'Locomotive Spec Database (LSDB) - QA.<br/><br/>Your username is <UN><br/>Your temporary'||
+'  password is: <PWD><br/><br/>Please go to raildivision.com -> EMD -> Engineering -> LSDBqa or directly to '
+|| 'http://lsdbqa.emdna.emdiesels.com:7001/EMD-LSDB/Login.do to log in. Once you are logged in, the main menu is '
+|| 'located across the top of the page.<br/><br/>You may change your password by going to '
+|| 'Administration > Change Password. Any new password must be at least 8 characters long, mix of at least '
+|| 'one number and one special character.<br/><br/>If you have any questions, please contact your LSDB Administrator.<br/><br/>Thank you,<br/>LSDB';
+l_s_Add_User_Subject := 'Notification - New User (QA)';
+
+ELSE
+
+l_s_Add_User_Body := 'Hello <FN>,<br/><br/>You have been added as <UR> in '||
+'Locomotive Spec Database (LSDB).<br/><br/>Your username is <UN><br/>Your temporary'||
+'  password is: <PWD><br/><br/>Please go to raildivision.com -> EMD -> Engineering -> LSDB or directly to '
+|| 'http://lsdb.emdna.emdiesels.com:7001/EMD-LSDB/Login.do to log in. Once you are logged in, the main menu is '
+|| 'located across the top of the page.<br/><br/>You may change your password by going to '
+|| 'Administration > Change Password. Any new password must be at least 8 characters long, mix of at least '
+|| 'one number and one special character.<br/><br/>If you have any questions, please contact your LSDB Administrator.<br/><br/>Thank you,<br/>LSDB';
+l_s_Add_User_Subject := 'Notification - New User';
+END IF;
+
+SELECT 'Y' INTO l_s_User_Exists_Flag FROM LSDB010_EMD_USERS a
+WHERE UPPER(TRIM(a.LS010_USER_ID)) = UPPER(TRIM(i_s_userid ));
+                
+SELECT MAX(LS180_EMAIL_SEQ_NO) INTO SEQ_EMAIL FROM LSDB180_EMAIL_LOG ;
+SEQ_MAX = SEQ_EMAIL+1; 
+
+-- IF l_s_User_Exists_Flag ='N' THEN
+
+SELECT LS010_EMAIL_ADDRESS INTO l_s_From_User_Email 
+FROM  LSDB010_EMD_USERS WHERE LS010_USER_ID=i_s_updtuserid;
+SELECT LS120_ROLE_NAME INTO l_s_User_Role  FROM LSDB120_USER_ROLES WHERE LS120_ROLE_ID=i_s_role;
+
+l_s_Add_User_Body := REPLACE(l_s_Add_User_Body,'<FN>',i_s_location);
+l_s_Add_User_Body := REPLACE(l_s_Add_User_Body,'<UR>',l_s_User_Role );
+l_s_Add_User_Body := REPLACE(l_s_Add_User_Body,'<UN>',i_s_userid);
+l_s_Add_User_Body := REPLACE(l_s_Add_User_Body,'<PWD>',i_s_password);
+
+INSERT INTO LSDB010_EMD_USERS (LS010_USER_ID,LS010_FIRSTNAME, LS010_LASTNAME, LS120_ROLE_ID,LS010_OLD_PWD, 
+                               LS010_PWD,LS010_EMAIL_ADDRESS,LS010_LOC, LS010_CONTACT_NUMBER,LS010_UPDT_USER_ID,
+                               LS010_UPDT_DATE,LS010_CURR_LOGGEDIN ,LS010_PREV_LOGGEDIN)  
+VALUES (i_s_userid,i_s_firstname,i_s_lastname,i_s_role,i_s_password,i_s_password,
+        i_s_emailid,i_s_location,i_n_contactno,i_s_updtuserid,'2016-08-10 00:00:00',NULL,NULL);
+
+INSERT INTO LSDB011_EMAIL_SUBSCRIPTIONS(LS010_USER_ID,LS011_ACTION_NOTICE,
+                                        LS011_CC_NOTICE,LS011_INFO_NOTICE,LS011_UPDT_USER_ID,LS011_UPDT_DATE)
+VALUES(i_s_userid,'Y','N','Y',i_s_updtuserid,'2016-08-10 00:00:00');   
+-- END IF;
+
+IF i_s_role <> 'DSBD'
+THEN
+INSERT INTO LSDB180_EMAIL_LOG( LS180_EMAIL_SEQ_NO,LS180_EMAIL_FROM_X,LS180_EMAIL_TO_X,LS180_EMAIL_SUBJECT_X,LS180_EMAIL_BODY_X, LS180_EMAIL_SENT_FLAG,LS180_EMAIL_TS,LS180_UPDT_USER_ID,LS180_UPDT_DATE) 
+VALUES( SEQ_MAX,'EMD-LSDB_MSAT@emdiesels.com',i_s_emailid,l_s_Add_User_Subject,l_s_Add_User_Body,'N','2016-08-10 00:00:00',i_s_updtuserid,current_date);                                  
+END IF;
+
+END;
+
+$function$;

@@ -1,0 +1,11 @@
+CREATE OR REPLACE FUNCTION public.sp_select_msg()
+    RETURNS refcursor
+    LANGUAGE 'plpgsql'
+    COST 100.0
+
+AS $function$
+  DECLARE o_cur_msgDetails REFCURSOR; BEGIN OPEN  o_cur_msgDetails FOR SELECT * from lsdb010_emd_users; RETURN o_cur_msgDetails; END; 
+$function$;
+
+ALTER FUNCTION public.sp_select_msg()
+    OWNER TO postgres;

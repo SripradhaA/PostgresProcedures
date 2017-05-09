@@ -1,0 +1,60 @@
+CREATE OR REPLACE FUNCTION public.sp_select_user_111(IN i_s_userid character varying,IN i_n_orderbyflag integer,OUT o_cur_userdetails character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100.0
+
+AS $function$
+
+declare
+l_s_FetchUsersSQL VARCHAR(1000);
+l_s_OrderBY VARCHAR(1000);
+BEGIN
+l_s_FetchUsersSQL :='';
+l_s_OrderBY :=NULL; 
+IF i_n_OrderbyFlag=1 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_LASTNAME) ASC';
+        ELSIF i_n_OrderbyFlag=0 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_FIRSTNAME) ASC';
+        ELSIF i_n_OrderbyFlag=2 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_LASTNAME) DESC';
+        ELSIF i_n_OrderbyFlag=3 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_FIRSTNAME) DESC';
+        ELSIF i_n_OrderbyFlag=4 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_USER_ID) ASC';
+        ELSIF i_n_OrderbyFlag=5 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_USER_ID) DESC';
+        ELSIF i_n_OrderbyFlag=6 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_LOC) ASC';
+        ELSIF i_n_OrderbyFlag=7 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(a.LS010_LOC) DESC';
+        ELSIF i_n_OrderbyFlag=8 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(b.LS120_ROLE_NAME) ASC';
+        ELSIF i_n_OrderbyFlag=9 THEN
+            l_s_OrderBY:=' ORDER BY UPPER(b.LS120_ROLE_NAME) DESC';
+        ELSIF i_n_OrderbyFlag=10 THEN
+            l_s_OrderBY:=' ORDER BY a.LS010_PREV_LOGGEDIN ASC NULLS LAST';
+        ELSIF i_n_OrderbyFlag=11 THEN
+            l_s_OrderBY:=' ORDER BY a.LS010_PREV_LOGGEDIN DESC NULLS LAST';
+        END IF;
+ l_s_FetchUsersSQL = 'SELECT TRIM(a.LS010_USER_ID) LS010_USER_ID' ||
+        '           ,TRIM(a.LS010_EMAIL_ADDRESS) LS010_EMAIL_ADDRESS' ||
+        '           ,TRIM(a.LS010_FIRSTNAME) LS010_FIRSTNAME' ||
+        '           ,TRIM(a.LS010_CONTACT_NUMBER) LS010_CONTACT_NUMBER' ||
+        '           ,TRIM(a.LS010_LASTNAME) LS010_LASTNAME' ||
+        '           ,TRIM(a.LS010_LOC) LS010_LOC' ||
+        '           ,TRIM(a.LS120_ROLE_ID) LS120_ROLE_ID' ||                    
+        '          ,TO_CHAR(a.LS010_PREV_LOGGEDIN,''DD-MON-YYYY HH24:MI:SS'')LS010_PREV_LOGGEDIN ' ||                    
+        '          ,TRIM(b.LS120_ROLE_NAME) LS120_ROLE_NAME ' ||                    
+        '          ,c.LS011_ACTION_NOTICE ' ||
+        '          ,c.LS011_INFO_NOTICE ' ||
+        '          ,c.LS011_CC_NOTICE  ' ||
+        'FROM       LSDB010_EMD_USERS a'    ||                    
+        '          ,LSDB120_USER_ROLES b ' ||                    
+        '          ,LSDB011_EMAIL_SUBSCRIPTIONS c ' ||
+        'WHERE      b.LS120_ROLE_ID = a.LS120_ROLE_ID '  ||
+        'AND        c.LS010_USER_ID = a.LS010_USER_ID ' ||
+        l_s_OrderBY;
+Select l_s_FetchUsersSQL into o_cur_UserDetails;
+END;
+
+$function$;

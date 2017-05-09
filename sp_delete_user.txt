@@ -1,0 +1,54 @@
+CREATE OR REPLACE FUNCTION public.sp_delete_user(i_s_userid character varying,i_s_updtuserid character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100.0
+
+AS $function$
+
+DECLARE
+   l_s_1058_User_Exists_Flag  VARCHAR(1) DEFAULT 'N';
+   l_s_To_User_Email  character varying;
+   l_s_From_User_Email  character varying;
+   l_s_Delete_User_Body  character varying;
+   l_s_Delete_User_Subject  character varying;
+   l_s_First_Name  character varying;
+   SEQ_EMAIL integer;
+   SEQ_MAX integer;
+BEGIN
+   l_s_Delete_User_Body     := 'Hello <FN><br/><br/>Your user account has'||
+' been deleted from the Locomotive Spec Database. You no longer have access to the Locomotive Spec Database.<br/><br/>'||
+'If you have any questions, please contact your Systems Administrator.<br/><br/>Thank you,<br/>LSDB';
+   l_s_Delete_User_Subject  := 'Notification - Delete User';
+   SELECT MAX(LS180_EMAIL_SEQ_NO) INTO SEQ_EMAIL FROM LSDB180_EMAIL_LOG ;
+   SEQ_MAX = SEQ_EMAIL+1; 
+-- BEGIN
+-- SELECT DISTINCT('Y') INTO l_s_1058_User_Exists_Flag 
+-- FROM LSDB916_1058_USER_LIST A,LSDB900_1058_DETAILS B 
+-- WHERE(UPPER(TRIM(A.LS010_USER_ID))) = UPPER(TRIM(i_s_userid)) OR(UPPER(TRIM(B.LS010_USER_ID))) = UPPER(TRIM(i_s_userid));
+-- END;
+-- IF l_s_1058_User_Exists_Flag = 'N' THEN
+-- BEGIN
+ -- SELECT LS010_EMAIL_ADDRESS INTO l_s_From_User_Email 
+ -- FROM  LSDB010_EMD_USERS WHERE LS010_USER_ID = i_s_updtuserid AND LS120_ROLE_ID <> 'DSBD';
+ -- END;
+-- BEGIN
+-- SELECT LS010_EMAIL_ADDRESS INTO l_s_To_User_Email 
+-- FROM  LSDB010_EMD_USERS WHERE LS010_USER_ID = i_s_userid AND LS120_ROLE_ID <> 'DSBD';
+-- END;
+-- BEGIN
+-- SELECT LS010_FIRSTNAME INTO l_s_First_Name 
+-- FROM LSDB010_EMD_USERS WHERE LS010_USER_ID = i_s_userid AND LS120_ROLE_ID <> 'DSBD';
+--  END;
+-- END IF;
+-- l_s_Delete_User_Body := REPLACE(l_s_Delete_User_Body,'<FN>',l_s_First_Name);
+
+DELETE FROM LSDB011_EMAIL_SUBSCRIPTIONS B WHERE  B.LS010_USER_ID = i_s_userid;
+DELETE FROM LSDB010_EMD_USERS A  WHERE A.LS010_USER_ID = i_s_userid;
+
+-- IF  l_s_To_User_Email IS NOT NULL THEN
+-- INSERT INTO LSDB180_EMAIL_LOG(LS180_EMAIL_SEQ_NO,LS180_EMAIL_FROM_X,LS180_EMAIL_TO_X,LS180_EMAIL_SUBJECT_X, LS180_EMAIL_BODY_X,LS180_EMAIL_SENT_FLAG,LS180_EMAIL_TS,LS180_UPDT_USER_ID,LS180_UPDT_DATE)
+ -- VALUES(SEQ_MAX,l_s_From_User_Email,l_s_To_User_Email,l_s_Delete_User_Subject,l_s_Delete_User_Body,'N',LOCALTIMESTAMP ,i_s_updtuserid,LOCALTIMESTAMP);
+-- END IF;
+END; 
+
+$function$;
