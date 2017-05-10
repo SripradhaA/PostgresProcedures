@@ -1,0 +1,34 @@
+package PostgresProcedures;
+import java.sql.*;
+
+
+public class ConnectPostgres {
+	public static void main(String[] args)
+			 throws SQLException, ClassNotFoundException {
+		
+		try {
+		   Class.forName("org.postgresql.Driver");                      
+           Connection con = DriverManager.getConnection("jdbc:postgresql://INCHCMPC06842:5432/Test1","postgres", "root");           
+           System.out.println("Connected to database");
+           CallableStatement cs=con.prepareCall("{call sp_insert_user(?,?,?,?,?,?,?,?,?,?)}");
+           cs.setString(1, "Santa123");
+           cs.setString(2, "Santa@gmail.com");
+           cs.setString(3, "Santa");
+           cs.setString(4, "Chennai");
+           cs.setString(5, "Clause");
+           cs.setString(6, "1236598");
+           cs.setString(7, "santa123");
+           cs.setString(8, "DSBD");
+           cs.setString(9, "NE2AR3");
+           cs.setString(10, "XXXX");
+           cs.executeUpdate();
+           System.out.println("values inserted successfully");
+			
+		}
+		catch(SQLException e)
+		{
+			System.out.println("Exception :"+e);
+			
+		}
+	}
+}

@@ -1,0 +1,24 @@
+package PostgresProcedures;
+import java.sql.*;
+
+public class DeleteUser {
+
+	public static void main(String[] args) throws SQLException, ClassNotFoundException {
+		try{
+			Class.forName("org.postgresql.Driver");                      
+	        Connection con = DriverManager.getConnection("jdbc:postgresql://INCHCMPC06842:5432/Test1","postgres", "root");           
+	        System.out.println("Connected to database");
+	        CallableStatement cs=con.prepareCall("{call sp_delete_user(?,?)}");
+	        cs.setString(1, "Santa123");
+	        cs.setString(2, "NE2AR3");
+	        cs.executeUpdate();
+	        System.out.println("User deleted");
+		
+		}
+		catch(Exception e)
+		{
+System.out.println("Exception "+e);
+	}
+
+}
+}
